@@ -1,0 +1,13 @@
+services:
+  oracle:
+    image: container-registry.oracle.com/database/free:latest
+    container_name: stock-oracle
+    ports:
+      - "1521:1521"
+    environment:
+      ORACLE_PWD: ${DB_ADMIN_PASSWORD}
+    volumes:
+      - oracle-data:/opt/oracle/oradata
+
+volumes:
+  oracle-data:
