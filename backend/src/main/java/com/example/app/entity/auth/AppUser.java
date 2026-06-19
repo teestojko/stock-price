@@ -17,18 +17,6 @@ public class AppUser {
     @Column(name = "ID")
     private Long id;
 
-    // Oracleで GenerationType.IDENTITY がエラーになる場合は、以下のように SEQUENCE を使用する方法もあります。
-    
-    // @Id
-    // @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "app_users_seq_generator")
-    // @SequenceGenerator(
-    //     name = "app_users_seq_generator",
-    //     sequenceName = "APP_USERS_SEQ",
-    //     allocationSize = 1
-    // )
-    // @Column(name = "ID")
-    // private Long id;
-
     /** ログインIDとして使用するメールアドレスです */
     @Column(name = "EMAIL", nullable = false, unique = true, length = 255)
     private String email;
