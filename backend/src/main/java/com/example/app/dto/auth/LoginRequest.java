@@ -2,6 +2,7 @@ package com.example.app.dto.auth;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 
 /**
  * ログイン時の入力値を受け取るリクエストDTOです。
@@ -16,6 +17,7 @@ public class LoginRequest {
 
     /** ログインに使用するパスワードです */
     @NotBlank(message = "パスワードは必須です")
+    @Size(max = 100, message = "パスワードは100文字以内で入力してください")
     private String password;
 
     /**

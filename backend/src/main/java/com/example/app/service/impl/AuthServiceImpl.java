@@ -4,12 +4,17 @@ import com.example.app.dto.auth.AuthResponse;
 import com.example.app.dto.auth.LoginRequest;
 import com.example.app.dto.auth.RegisterRequest;
 import com.example.app.entity.auth.AppUser;
+import com.example.app.exception.AuthenticationFailedException;
+import com.example.app.exception.LoginAttemptLimitExceededException;
 import com.example.app.repository.auth.AppUserRepository;
 import com.example.app.security.JwtTokenProvider;
 import com.example.app.service.AuthService;
+import com.example.app.service.LoginAttemptService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Locale;
 
 /**
  * 認証処理のビジネスロジックを実装するServiceです。
@@ -26,21 +31,31 @@ public class AuthServiceImpl implements AuthService {
     /** JWTを作成・検証する部品です */
     private final JwtTokenProvider jwtTokenProvider;
 
+    /** ログイン失敗回数を管理する部品です */
+    private final LoginAttemptService loginAttemptService;
+
+    /** 未登録利用者でも同じパスワード照合を行うためのダミーハッシュです */
+    private final String dummyPasswordHash;
+
     /**
      * 認証Serviceを生成します。
      *
      * @param appUserRepository ユーザーRepository
      * @param passwordEncoder パスワードハッシュ化部品
      * @param jwtTokenProvider JWT作成部品
+     * @param loginAttemptService ログイン失敗回数管理部品
      */
     public AuthServiceImpl(
             AppUserRepository appUserRepository,
             PasswordEncoder passwordEncoder,
-            JwtTokenProvider jwtTokenProvider
+            JwtTokenProvider jwtTokenProvider,
+            LoginAttemptService loginAttemptService
     ) {
         this.appUserRepository = appUserRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtTokenProvider = jwtTokenProvider;
+        this.loginAttemptService = loginAttemptService;
+        this.dummyPasswordHash = passwordEncoder.encode("authentication-timing-protection");
     }
 
     /**
@@ -53,7 +68,7 @@ public class AuthServiceImpl implements AuthService {
     @Transactional
     public AuthResponse register(RegisterRequest request) {
         // メールアドレスの前後空白を除去して、入力ゆれを防ぎます
-        String normalizedEmail = request.getEmail().trim().toLowerCase();
+        String normalizedEmail = request.getEmail().trim().toLowerCase(Locale.ROOT);
 
         // 同じメールアドレスが登録済みか確認します
         if (appUserRepository.existsByEmail(normalizedEmail)) {
@@ -90,18 +105,29 @@ public class AuthServiceImpl implements AuthService {
     @Transactional(readOnly = true)
     public AuthResponse login(LoginRequest request) {
         // メールアドレスの前後空白を除去して、入力ゆれを防ぎます
-        String normalizedEmail = request.getEmail().trim().toLowerCase();
+        String normalizedEmail = request.getEmail().trim().toLowerCase(Locale.ROOT);
+
+        // 短時間に繰り返されるログイン試行を拒否します
+        if (!loginAttemptService.isAllowed(normalizedEmail)) {
+            throw new LoginAttemptLimitExceededException();
+        }
 
         // メールアドレスに紐づくユーザーを取得します
-        AppUser appUser = appUserRepository.findByEmail(normalizedEmail)
-                .orElseThrow(() -> new IllegalArgumentException("メールアドレスまたはパスワードが正しくありません"));
+        AppUser appUser = appUserRepository.findByEmail(normalizedEmail).orElse(null);
+
+        // 未登録の場合もダミーハッシュと照合し、処理時間による登録状況の推測を防ぎます
+        String passwordHash = appUser == null ? dummyPasswordHash : appUser.getPassword();
 
         // 入力されたパスワードとハッシュ化済みパスワードを照合します
-        boolean passwordMatched = passwordEncoder.matches(request.getPassword(), appUser.getPassword());
+        boolean passwordMatched = passwordEncoder.matches(request.getPassword(), passwordHash);
 
-        if (!passwordMatched) {
-            throw new IllegalArgumentException("メールアドレスまたはパスワードが正しくありません");
+        if (appUser == null || !passwordMatched) {
+            loginAttemptService.recordFailure(normalizedEmail);
+            throw new AuthenticationFailedException();
         }
+
+        // 認証成功後は過去の失敗回数を消去します
+        loginAttemptService.clearFailures(normalizedEmail);
 
         // 認証成功後にJWTを発行します
         String token = jwtTokenProvider.createToken(appUser.getEmail(), appUser.getRole());
