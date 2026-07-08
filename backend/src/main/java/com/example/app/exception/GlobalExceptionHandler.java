@@ -51,6 +51,20 @@ public class GlobalExceptionHandler {
         return new ApiErrorResponse(HttpStatus.BAD_REQUEST.value(), exception.getMessage());
     }
 
+    /** ログイン認証失敗を401として安全に返します */
+    @ExceptionHandler(AuthenticationFailedException.class)
+    @ResponseStatus(HttpStatus.UNAUTHORIZED)
+    public ApiErrorResponse handleAuthenticationFailedException(AuthenticationFailedException exception) {
+        return new ApiErrorResponse(HttpStatus.UNAUTHORIZED.value(), exception.getMessage());
+    }
+
+    /** ログイン試行上限超過を429として返します */
+    @ExceptionHandler(LoginAttemptLimitExceededException.class)
+    @ResponseStatus(HttpStatus.TOO_MANY_REQUESTS)
+    public ApiErrorResponse handleLoginAttemptLimitExceededException(LoginAttemptLimitExceededException exception) {
+        return new ApiErrorResponse(HttpStatus.TOO_MANY_REQUESTS.value(), exception.getMessage());
+    }
+
     /**
      * 想定外エラーを処理します。
      *

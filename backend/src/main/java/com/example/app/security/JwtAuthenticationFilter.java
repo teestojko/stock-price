@@ -4,6 +4,8 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import com.example.app.entity.auth.AppUser;
+import com.example.app.repository.auth.AppUserRepository;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -22,13 +24,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     /** JWTの作成・検証を行う部品です */
     private final JwtTokenProvider jwtTokenProvider;
 
+    /** 現在の利用者情報を取得するRepositoryです */
+    private final AppUserRepository appUserRepository;
+
     /**
      * JWT認証フィルタを生成します。
      *
      * @param jwtTokenProvider JWT処理部品
+     * @param appUserRepository 利用者Repository
      */
-    public JwtAuthenticationFilter(JwtTokenProvider jwtTokenProvider) {
+    public JwtAuthenticationFilter(JwtTokenProvider jwtTokenProvider, AppUserRepository appUserRepository) {
         this.jwtTokenProvider = jwtTokenProvider;
+        this.appUserRepository = appUserRepository;
     }
 
     /**
@@ -62,8 +69,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             // JWTからメールアドレスを取得します
             String email = jwtTokenProvider.getEmailFromToken(token);
 
-            // JWTから権限を取得します
-            String role = jwtTokenProvider.getRoleFromToken(token);
+            // DBの現在情報を取得し、削除済み利用者や古い権限のJWTを拒否します
+            AppUser appUser = appUserRepository.findByEmail(email).orElse(null);
+            if (appUser == null) {
+                filterChain.doFilter(request, response);
+                return;
+            }
+
+            // JWTではなく現在の利用者情報から権限を取得します
+            String role = appUser.getRole();
 
             // Spring Securityで扱う権限リストを作成します
             List<SimpleGrantedAuthority> authorities = List.of(new SimpleGrantedAuthority(role));
