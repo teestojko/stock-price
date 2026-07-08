@@ -6,10 +6,14 @@
 /Users/kishitetsuya/java/stock-price/backend/src/main/java/com/example/app/dto/auth/RegisterRequest.java
 /Users/kishitetsuya/java/stock-price/backend/src/main/java/com/example/app/entity/auth/AppUser.java
 /Users/kishitetsuya/java/stock-price/backend/src/main/java/com/example/app/exception/ApiErrorResponse.java
+/Users/kishitetsuya/java/stock-price/backend/src/main/java/com/example/app/exception/AuthenticationFailedException.java
 /Users/kishitetsuya/java/stock-price/backend/src/main/java/com/example/app/exception/GlobalExceptionHandler.java
+/Users/kishitetsuya/java/stock-price/backend/src/main/java/com/example/app/exception/LoginAttemptLimitExceededException.java
 /Users/kishitetsuya/java/stock-price/backend/src/main/java/com/example/app/repository/auth/AppUserRepository.java
 /Users/kishitetsuya/java/stock-price/backend/src/main/java/com/example/app/security/JwtAuthenticationFilter.java
 /Users/kishitetsuya/java/stock-price/backend/src/main/java/com/example/app/security/JwtTokenProvider.java
 /Users/kishitetsuya/java/stock-price/backend/src/main/java/com/example/app/security/SecurityConfig.java
 /Users/kishitetsuya/java/stock-price/backend/src/main/java/com/example/app/service/AuthService.java
+/Users/kishitetsuya/java/stock-price/backend/src/main/java/com/example/app/service/LoginAttemptService.java
 /Users/kishitetsuya/java/stock-price/backend/src/main/java/com/example/app/service/impl/AuthServiceImpl.java
+/Users/kishitetsuya/java/stock-price/backend/src/main/java/com/example/app/service/impl/InMemoryLoginAttemptService.java
